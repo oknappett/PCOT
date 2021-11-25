@@ -1,5 +1,5 @@
 import importlib
-import importlib.resources
+import importlib.metadata
 import os
 import sys
 import time
@@ -12,7 +12,7 @@ from pcot.config import getUserName, addMainWindowHook, addExprFuncHook
 from pcot.utils import archive
 from pcot.xforms import *
 
-__version__ = importlib.resources.read_text(pcot, 'VERSION.txt')
+__version__ = importlib.metadata.metadata("pcot")["Version"]
 
 
 ##### Plugin handling

@@ -2,7 +2,7 @@
 
 This is the prototype of the Pancam Operations Toolkit. 
 
-## Installing with Anaconda
+## Installation
 PCOT is a Python program (and library) with a number of dependencies:
 
 * Python >3.8
@@ -13,15 +13,20 @@ PCOT is a Python program (and library) with a number of dependencies:
 * pyperclip
 * matplotlib
 
-I find the best way to manage these is to use Anaconda. Installation has been tested on Windows 10
-and Ubuntu 20.04. The first thing you'll need to do is install Anaconda, which can be done from here:
-* Windows: https://docs.anaconda.com/anaconda/install/linux/
+Installation has been tested on Windows 10 and Ubuntu 20.04.
+
+### Anaconda
+I find the best way to manage Python versions and PCOT's dependencies is to use Anaconda.
+If you wish to use it, install Anaconda from one of the below links before proceeding:
+* Windows: https://docs.anaconda.com/anaconda/install/windows/
 * Linux: https://docs.anaconda.com/anaconda/install/linux/
 * MacOS: https://docs.anaconda.com/anaconda/install/mac-os/ (untested)
 
+#### Opening Anaconda's shell on different OSs
+* **Windows:** Open the **Anaconda PowerShell Prompt** application, which will have been installed when you installed Anaconda.
+* **Linux and MacOS**: just open a Bash shell 
 
-### Obtain the software
-
+### Obtaining PCOT
 For both Windows and Ubuntu this is the obvious first step. This can be done by
 either downloading the archive from Github and extracting it into a new directory,
 or cloning the repository. In both cases, the top level directory should be called
@@ -29,7 +34,7 @@ PCOT (this isn't really mandatory but makes the instructions below simpler).
 The best way to download is this:
 
 * Make sure you have a Github account and membership of the AU-ExoMars group.
-* Open an Anaconda shell window (see below)  
+* Open an Anaconda shell window (see above) if applicable, else open a regular shell.
 * If you have an SSH key set up for GitHub, type this command into the shell:
 ```shell
 git clone git@github.com:AU-ExoMars/PCOT.git
@@ -41,53 +46,42 @@ git clone https://github.com/AU-ExoMars/PCOT.git
 * You should now have a PCOT directory which will contain this file (as README.md)
 and quite a few others.
 
-#### Opening Anaconda's shell on different OSs
-* **Windows:** Open the **Anaconda PowerShell Prompt** application, which will have been installed when you
-installed Anaconda.
-* **Linux and MacOS**: just open a Bash shell  
-
-
-### Installing on Ubuntu / MacOS
+### Installing PCOT with Anaconda
 Assuming you have successfully installed Anaconda and cloned or downloaded PCOT as above:
-* Open a bash shell
+* Open an Anaconda shell (see above).
 * **cd** to the PCOT directory (which contains this file).
-* Run the command **./createCondaEnv**. This will create an environment called **pcot**, and will take some time.
-* Activate the environment with **conda activate pcot**.
-* Install PCOT into the environment with **python setup.py develop** (not 'install'; we want to be able to update easily).
-* You should now be able to run **pcot** to start the application.
+* Run the command `conda create -n pcot python=3.8 poetry`. This will create an environment called **pcot**, and will take some time.
+* Activate the environment with `conda activate pcot`.
+* Install PCOT into the environment with `poetry install`.
+* You should now be able to run `pcot` to start the application.
 
-### Installing on Windows
-Assuming you have successfully installed Anaconda and cloned or downloaded PCOT as above:
-* Open the Anaconda PowerShell Prompt application from the Start Menu.
+### Installing PCOT without Anaconda
+Assuming you have an appropriate version of Python (>=3.8) installed:
+* [Install Poetry](https://python-poetry.org/docs/#installation). 
 * **cd** to the PCOT directory (which contains this file).
-* Run the command **./createCondaEnv.bat**. This will create an environment called **pcot**, and will take some time.
-* Activate the environment with **conda activate pcot**.
-* Install PCOT into the environment with **python setup.py develop** (not 'install'; we want to be able to update easily).
-* You should now be able to run **pcot** to start the application.
+* Run the command `poetry install`. This will create a new virtual environment and install PCOT along with its dependencies into it.
+* You should now be able to run the command `poetry run pcot` to start the application.
 
-## Installing without an environment manager
-* Directly install the packages at the top of this
-file using **pip3 *packagename packagename* ...**
-* Install PCOT with **python setup.py develop** as above
-* You should now be able to run **pcot** to start the application.
-  
-The danger here, of course, is that the new packages may clash with your existing 
-python environment.
-
-## One last step
-Because the **pds4-tools** package isn't in any Anaconda reposities yet,
-you'll need to install it manually. With the pcot environment active, run
-```
-pip3 install pds4-tools
-```
+If you have multiple Pythons installed you can [let Poetry know](https://python-poetry.org/docs/managing-environments/) which version to use.
 
 ## Running PCOT
+### With Anaconda
 Open an Anaconda shell and run the following commands (assuming you installed PCOT into your home directory):
 ```shell
 cd PCOT
 conda activate pcot
 pcot
 ```
+### Without Anaconda
+Open a shell and run the following commands (assuming you installed PCOT into your home directory):
+```shell
+cd ~/PCOT
+poetry run pcot
+```
+
+
+
+
 
 ## Running PCOT inside Pycharm
 These instructions apply to Anaconda installations.
@@ -109,7 +103,6 @@ These instructions apply to Anaconda installations.
 * You should now be able to run and debug PCOT.
 
 ## Environment variables
-
 It's a good idea, but not mandatory, to set the environment variable
 **PCOTUSER** to a string of the form **name \<email\>**. For example,
 in Linux I have added the following to my **.bashrc** file:
