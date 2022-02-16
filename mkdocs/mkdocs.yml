@@ -1,3 +1,23 @@
 site_name: Test pcot docs
+
+theme:
+    name: mkdocs
+    custom_dir: theme
+
+markdown_extensions:
+  - lightbox:LightBoxExtension
+  - pymdownx.arithmatex
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.snippets:
+        check_paths: True
+        base_path: ['docs/','.']
+
 nav:
     - Home: index.md
+    - Getting Started: gettingstarted.md
+    - Autodocs: autodocs/index.md
+
+extra_javascript:
+    - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML
+
