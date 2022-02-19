@@ -13,6 +13,11 @@ class XformPctCalibrate(XFormType):
         self.addInputConnector("img", Datum.IMG)
         self.addOutputConnector("", Datum.IMG)
 
+    def createTab(self, n, w):
+        return TabImage(n, w)
+
+    def init(self, node):
+        node.out = None
 
     def perform(self, node):
         data = node.getInput(0, Datum.IMG)
