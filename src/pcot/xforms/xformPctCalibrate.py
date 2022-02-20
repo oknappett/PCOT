@@ -7,15 +7,21 @@ from pcot.xforms.tabimage import TabImage
 
 
 def thresh(img):
-    '''threshold an image, binary threshold method used'''
+    # threshold an image, binary threshold method used
     if img is None:
         return None
     else:
         copy = img.copy()
         for i in range(copy.channels):
             c = copy.img[:, :, i]
+            # convert the image 0-1 range to 0-255 pixels for opencv
             c = (c * 255).astype(np.uint8)
-            ret, t = cv.threshold(c, 180, 255, cv.THRESH_BINARY)
+            # blur the image with a 5x5 kernel
+            blur = cv.GaussianBlur(c, (11,11), 0)
+            lowerThresh = 180
+            upperThresh = 255
+            ret, t = cv.threshold(blur, lowerThresh, upperThresh, cv.THRESH_OTSU)
+            # set the image channel to the threshold values
             copy.img[:, :, i] = t
         return copy
 
@@ -27,13 +33,19 @@ class XformPctCalibrate(XFormType):
 
     def __init__(self):
         super().__init__("pctCalibrate", "calibration", "0.0.0")
+        # single input image
         self.addInputConnector("", Datum.IMG)
+        # single output, it's an image for now but will need to decide on a
+        # output type at a later date -> the centre pixels of the targets
         self.addOutputConnector("", Datum.IMG)
 
     def createTab(self, n, w):
+        # standard tab for now, just outputs the image after the
+        # xform is applied within the node
         return TabImage(n, w)
 
     def init(self, node):
+        # output set to null initially
         node.out = None
 
     def perform(self, node):
