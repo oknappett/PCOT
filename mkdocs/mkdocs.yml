@@ -6,6 +6,7 @@ theme:
 
 markdown_extensions:
   - lightbox:LightBoxExtension
+  - alert:AlertExtension
   - pymdownx.arithmatex
   - pymdownx.magiclink
   - pymdownx.mark

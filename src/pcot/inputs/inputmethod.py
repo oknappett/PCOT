@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any
 
 from pcot import ui
+from pcot.datum import Datum
 from pcot.ui.canvas import Canvas
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class InputMethod(ABC):
     def __init__(self, inp):
         self.input = inp
         self.name = ''
-        self.data = None
+        self.data = Datum.null
         Canvas.initPersistData(self)  # creates data inside the canvas
         self.showROIs = False  # used by the canvas
 
@@ -29,9 +30,11 @@ class InputMethod(ABC):
         """Is this method active?"""
         return self.input.isActive(self)
 
-    def readData(self) -> Optional[Any]:
-        """to override - actually runs the input and returns data."""
-        return None
+    @abstractmethod
+    def readData(self) -> Datum:
+        """to override - actually runs the input and returns data. Do not call from anywhere but get().
+        This HAS to be overridden."""
+        pass
 
     def mark(self):
         """About to perform a change, so mark an undo point"""
@@ -57,15 +60,17 @@ class InputMethod(ABC):
 
     def invalidate(self):
         """invalidates the method's cached data"""
-        self.data = None
+        self.data = Datum.null
 
-    def get(self):
+    def get(self) -> Datum:
         """returns cached data - if that's None, attempts to read data and cache it."""
         if self.data is None:
+            raise Exception("input methods should not return None from readData(), ever.")
+        if self.data.isNone():   # data is none, try to read it and cache it
             self.input.exception = None
             try:
-                self.data = self.readData()
-                if self.data is None:
+                self.data = self.readData()  # this is a method in each subclass
+                if self.data.isNone():  # it's still not there
                     logger.info("CACHE WAS INVALID AND DATA COULD NOT BE READ")
                 else:
                     logger.info("CACHE WAS INVALID, DATA HAS BEEN READ")
@@ -104,7 +109,7 @@ class InputMethod(ABC):
         """
         return None
 
-    ## to override - sets this method's data from JSON-read data
     def deserialise(self, data, internal):
+        """to override - sets this method's data from JSON-read data"""
         raise Exception("InputMethod does not have a deserialise method")
 
