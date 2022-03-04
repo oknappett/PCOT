@@ -35,7 +35,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="2">
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="methodLabel">
          <property name="maximumSize">
           <size>
            <width>16777215</width>
@@ -47,7 +47,7 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
+       <item row="5" column="2">
         <widget class="QPushButton" name="Detect">
          <property name="text">
           <string>Detect</string>
@@ -83,6 +83,29 @@
           </widget>
          </item>
         </layout>
+       </item>
+       <item row="4" column="2">
+        <widget class="QSpinBox" name="KernelSize">
+         <property name="minimum">
+          <number>11</number>
+         </property>
+         <property name="maximum">
+          <number>30</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QLabel" name="kernelLabel">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Kernel size:</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
