@@ -92,6 +92,9 @@
          <property name="maximum">
           <number>30</number>
          </property>
+         <property name="singleStep">
+          <number>2</number>
+         </property>
         </widget>
        </item>
        <item row="3" column="2">

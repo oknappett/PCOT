@@ -52,15 +52,17 @@ def edge(img, kernel):
         return copy
 
 
-def HoughCircles(img):
+def HoughCircles(img, k):
     if img is None:
         return None
     else:
         copy = img.copy()
         print("shape 1: ", copy.shape)
         circleAmount = []
-        for i in range(copy.channels):
-            c = copy.img[:, :, i]
+        rgb = copy.rgbImage()
+        edges = edge(copy, k)
+        for i in range(edges.channels):
+            c = edges.img[:, :, i]
             cArray = np.array(c).astype(np.uint8)
             circles = cv.HoughCircles(cArray, cv.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
             print(circles)
@@ -70,12 +72,12 @@ def HoughCircles(img):
                 for j in circles[0, :]:
                     circleNo += 1
                     x, y, r = j[0], j[1], j[2]
-                    cv.circle(cArray, (x, y), r, (255, 0, 0), 2)
-                    cv.circle(cArray, (x, y), 1, (255, 0, 0), 2)
+                    cv.circle(rgb.img, (x, y), r, (255, 0, 0), 1)
+                    cv.circle(rgb.img, (x, y), 1, (0, 255, 0), 1)
                 circleAmount.append(circleNo)
-            copy.img[:, :, i] = cArray
+            # copy.img[:, :, i] = cArray
         print(circleAmount, np.mean(circleAmount))
-    return copy
+    return rgb
     
 
 @xformtype
@@ -109,8 +111,7 @@ class XformPctCalibrate(XFormType):
         else:
             img = data.copy()
             k = node.Kernel
-            edges = edge(img, k)
-            circles = HoughCircles(edges)
+            circles = HoughCircles(img, k)
             out = circles
         node.out = Datum(Datum.IMG, out)
         node.setOutput(0, node.out)
