@@ -57,15 +57,15 @@ def HoughCircles(img, k):
         return None
     else:
         copy = img.copy()
-        print("shape 1: ", copy.shape)
         circleAmount = []
         rgb = copy.rgbImage()
         edges = edge(copy, k)
+        circleArray = [()]
         for i in range(edges.channels):
             c = edges.img[:, :, i]
             cArray = np.array(c).astype(np.uint8)
             circles = cv.HoughCircles(cArray, cv.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
-            print(circles)
+            circleArray.append(circles)
             if circles is not None:
                 circleNo = 0
                 circles = np.uint16(np.around(circles))
@@ -76,9 +76,10 @@ def HoughCircles(img, k):
                     cv.circle(rgb.img, (x, y), 1, (0, 255, 0), 1)
                 circleAmount.append(circleNo)
             # copy.img[:, :, i] = cArray
-        print(circleAmount, np.mean(circleAmount))
-    return rgb
-    
+        # print(circleAmount, np.mean(circleAmount))
+        print(circleArray)
+        return rgb
+
 
 @xformtype
 class XformPctCalibrate(XFormType):
@@ -133,4 +134,3 @@ class PCTCalibTab(pcot.ui.tabs.Tab):
         self.w.canvas.setGraph(self.node.graph)
         self.w.canvas.setPersister(self.node)
         self.w.canvas.display(self.node.out)
-
