@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="add circles to RGB image of pct calibration">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
