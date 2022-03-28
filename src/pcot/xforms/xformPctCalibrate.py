@@ -57,16 +57,40 @@ def Cluster(Circles):
         return None
     else:
         # loop through all circles
-        for c in Circles:
+        AverageCircles = []
+        copy = Circles.copy()
+        clustered = []
+        for c in copy:
             x, y, r = c[0], c[1], c[2]
-            for j in Circles:
+            SameCircles = []
+            for j in copy:
                 # loop through all circles and compare to current circle
-                if (j is not c):
+                if j is not c:
                     Jx, Jy, Jr = j[0], j[1], j[2]
                     # if current circle centre is inside other circle then remove circle
                     if ((Jx <= (x + r)) and (Jx >= (x - r))) and ((Jy <= (y + r)) and (Jy >= (y - r))):
-                        Circles.remove(j)
-        return Circles
+
+                        copy.remove(j)
+                        SameCircles.append([Jx, Jy, Jr])
+
+            x = []
+            y = []
+            r = []
+            for n in SameCircles:
+                Nx, Ny, Nr = n[0], n[1], n[2]
+                x.append(Nx)
+                y.append(Ny)
+                r.append(Nr)
+            xMean = np.uint16(np.around(np.mean(x)))
+            yMean = np.uint16(np.around(np.mean(y)))
+            rMean = np.uint16(np.around(np.mean(r)))
+            if (xMean and yMean and rMean) != 0:
+                clustered.append([xMean, yMean, rMean])
+
+            copy.remove(c)
+
+        print("cluster: ", clustered)
+        return clustered
 
 
 def HoughCircles(img, k):
@@ -76,7 +100,7 @@ def HoughCircles(img, k):
         copy = img.copy()
         circleAmount = []
         rgb = copy.rgbImage()
-        # edge detecor on image
+        # edge detector on image
         edges = edge(copy, k)
         circleArray = []
         for i in range(edges.channels):
@@ -96,15 +120,13 @@ def HoughCircles(img, k):
                     # cv.circle(rgb.img, (x, y), r, (1, 0, 0), 1)
                     # cv.circle(rgb.img, (x, y), 1, (0, 1, 0), 1)
                 circleAmount.append(circleNo)
-
         ClusteredCircles = Cluster(circleArray)
         for n in ClusteredCircles:
             x, y, r = n[0], n[1], n[2]
             cv.circle(rgb.img, (x, y), r, (1, 0, 0), 1)
             cv.circle(rgb.img, (x, y), 1, (0, 1, 0), 1)
-        # print(circleAmount, np.mean(circleAmount))
+        print(circleAmount, np.mean(circleAmount))
         # return rgb image with circles drawn on
-        print(circleArray)
         return rgb
 
 
