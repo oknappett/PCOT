@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="add circles to RGB image of pct calibration">
+    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Clusters circles around mean of circle rather than first come first serve type cluster">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" afterDir="false" />
     </list>
