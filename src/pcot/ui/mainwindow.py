@@ -177,9 +177,13 @@ class MainUI(ui.tabs.DockableTabWindow):
         else:
             # We are definitely a main window
             self.macroPrototype = None  # we are not a macro
-            # now create the input selector buttons, removing the old ones
-            while self.isfLayout.takeAt(0):
-                pass
+            # now create the input selector buttons, removing the old ones.
+            # We do this by getting rid of the old layout so we can set a new one, by reparenting
+            # the old layout into a temporary widget.
+            QtWidgets.QWidget().setLayout(self.isfLayout)
+            # then we create and set a new layout and add the items to it.
+            self.isfLayout = QtWidgets.QHBoxLayout()
+            self.inputSelectorFrame.setLayout(self.isfLayout)
 
             for x in range(0, len(self.doc.inputMgr.inputs)):
                 self.isfLayout.addWidget(InputSelectButton(x, self.doc.inputMgr.inputs[x]))
@@ -284,8 +288,9 @@ class MainUI(ui.tabs.DockableTabWindow):
         # doing it in one step, to avoid errors in the former leaving us
         # with an unreadable file.
         try:
+            ui.msg(f"Saving to {fname}")
             self.doc.save(fname, saveInputs=saveInputs)
-            ui.msg("File saved : " + fname)
+            ui.msg(f"File saved to {fname}")
             self.rebuildRecents()
         except Exception as e:
             traceback.print_exc()
@@ -299,6 +304,7 @@ class MainUI(ui.tabs.DockableTabWindow):
         self.graph.autoRun = False
         try:
             import pcot.document
+            ui.msg(f"Loading file {fname}...")
             d = pcot.document.Document(fname)
             MainUI.windows.remove(
                 self)  # remove the existing entry for this window, we'll add it again in the next line
@@ -338,7 +344,7 @@ class MainUI(ui.tabs.DockableTabWindow):
     ## the "save" menu handler
     def saveAction(self):
         if self.saveFileName is None:
-            self.saveAsAction()
+            self.saveAsAction(True)
         else:
             self.save(self.saveFileName)
 

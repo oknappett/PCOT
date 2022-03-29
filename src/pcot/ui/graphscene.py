@@ -32,6 +32,7 @@ try:
 except ImportError:
     logger.info("Grandalf is not present, autolayout will be awful.")
 
+
     # dummy class defs for when grandalf isn't present, to avoid rogue errors in type checking
 
     class Graph:
@@ -61,8 +62,11 @@ errorFont.setPixelSize(12)
 
 # constants for node drawing
 
-# height of a node in pixels (including connectors) (minimum is part of XFormType)
+# height of a node in pixels (used in XFormType)
 NODEHEIGHT = 50
+
+# min nodeheight for resizable nodes
+MINNODEHEIGHT = 50
 
 # offset of xform name text into box
 XTEXTOFFSET = 5
@@ -75,8 +79,6 @@ XERROROFFSET = 20
 
 # height of connector boxes
 CONNECTORHEIGHT = 10
-# additional space between nodes in autolayouts
-YPADDING = 10
 
 # x offset of connector label
 CONNECTORTEXTXOFF = 2
@@ -101,6 +103,7 @@ PASTEOFFSET = 20
 class GHelpRect(QtWidgets.QGraphicsRectItem):
     """Help box. This has no functionality, we can't make it catch clicks unless we make it
     selectable (which we don't want). That has to be done in the GMainRect parent."""
+
     def __init__(self, x, y, node, parent):
         super().__init__(x + node.w - CONNECTORHEIGHT, y, HELPBOXSIZE, HELPBOXSIZE, parent=parent)
         self.setBrush(Qt.blue)
@@ -108,6 +111,7 @@ class GHelpRect(QtWidgets.QGraphicsRectItem):
 
 class GText(QtWidgets.QGraphicsSimpleTextItem):
     """text in middle of main rect and on connections"""
+
     def __init__(self, parent, text, node):
         super().__init__(text, parent=parent)
         self.node = node
@@ -125,12 +129,16 @@ class GMainRect(QtWidgets.QGraphicsRectItem):
     helprect: GHelpRect  # help rectangle (top-right corner)
     node: XForm  # node to which I refer
     text: GText  # text field
-    aboutToMove: bool   # true when the item is clicked; the first move after this will cause a mark and clear this flag
+    aboutToMove: bool  # true when the item is clicked; the first move after this will cause a mark and clear this flag
+    resizing: bool  # we are resizing; mutually exclusive with aboutToMove
+    resizeStartRectangle: Optional['QRect']  # if we are resizing, the rect. when we started doing that
+    resizeStartPosition: Optional[QPointF]  # if we are resizing, the mouse pos. when we started doing that
 
     def __init__(self, x1, y1, w, h, node):
         self.offsetx = 0  # these are the distances from our original pos.
         self.offsety = 0
         self.aboutToMove = False
+        self.resizing = False
         super().__init__(x1, y1, w, h)
         self.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable |
                       QtWidgets.QGraphicsItem.ItemIsMovable |
@@ -138,16 +146,29 @@ class GMainRect(QtWidgets.QGraphicsRectItem):
         self.node = node
         # help "button" created when setSizeToText is called.
         self.helprect = None
+        self.resizeStartRectangle = None
+        self.resizeStartPosition = None
+        if node.type.setRectParams is not None:
+            node.type.setRectParams(self)
 
-    def setSizeToText(self, node):
+    def setSizeToText(self):
+        """Make sure the text fits - works by setting the width to the maximum of the minimum possible
+        width and the text width. We don't use the current node width - this method effectively "shrinkwraps"
+        the box to the text. We also don't use it for 'resizable' nodes (like comments) """
+        node = self.node
+        if not node.type.resizable:
+            r = self.rect()
+            w = max(node.type.minwidth, self.text.boundingRect().width() + 10)
+            r.setWidth(w)
+            self.setRect(r)
+            node.w = w
+        self.buildHelpBox()
+
+    def buildHelpBox(self):
         r = self.rect()
-        w = max(node.type.minwidth, self.text.boundingRect().width()+10)
-        r.setWidth(w)
-        self.setRect(r)
-        node.w = w
-        if self.helprect: # get rid of any old one
+        if self.helprect:  # get rid of any old one
             self.helprect.setParentItem(None)
-        self.helprect = GHelpRect(r.x(), r.y(), node, self)
+        self.helprect = GHelpRect(r.x(), r.y(), self.node, self)
 
     def itemChange(self, change, value):
         """deal with items moving"""
@@ -168,15 +189,48 @@ class GMainRect(QtWidgets.QGraphicsRectItem):
         return super().itemChange(change, value)
 
     def mousePressEvent(self, event):
-        self.aboutToMove = True
+        # near a corner and the node is resizable? Start resizing. Otherwise, start moving.
+        p = event.pos()
+        if self.node.type.resizable and (p - self.rect().bottomRight()).manhattanLength() < 15:
+            self.resizing = True
+            self.resizeStartPosition = p
+            self.resizeStartRectangle = self.rect()
+        else:
+            self.aboutToMove = True
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
+        if self.resizing:
+            # this resizes the node box and ignores the move event (so we don't end up moving it too)
+            mouseMoved = event.pos() - self.resizeStartPosition
+            r = self.resizeStartRectangle.adjusted(0, 0, mouseMoved.x(), mouseMoved.y())
+            if r.width() < self.node.type.minwidth:
+                r.setWidth(self.node.type.minwidth)
+            if r.height() < MINNODEHEIGHT:
+                r.setHeight(MINNODEHEIGHT)
+
+            self.setRect(r)
+            self.node.w = r.width()
+            self.node.h = r.height()
+            # ui.log(f"adjusting {event.pos()} - {self.resizeStartPosition} = {mouseMoved}, resized to {self.node.w}, {self.node.h}")
+            event.ignore()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
+        if self.resizing:
+            self.node.type.resizeDone(self.node)
+            self.buildHelpBox()
+
+        self.resizing = False
+        super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event):
         """double click should find or open a tab, even to the extent
         of focussing another window (an expanded tab); an action
         delegated to the main window"""
         w = getEventWindow(event)
-        if self.helprect.boundingRect().contains(event.pos()):
+        if self.helprect is not None and self.helprect.boundingRect().contains(event.pos()):
             w.openHelp(self.node.type, node=self.node)
         else:
             w.openTab(self.node)
@@ -189,24 +243,27 @@ class GMainRect(QtWidgets.QGraphicsRectItem):
             togact = m.addAction("Disable" if self.node.enabled else "Enable")
         else:
             togact = None
-        help = m.addAction("Help")
+        helpact = m.addAction("Help")
+        openact = m.addAction("Open in tab")
 
-        # only worth doing if there are menu items!
+        # only worth doing if there are menu items! Note that by now this is always true
+        # but I'll leave the condition here.
         if not m.isEmpty():
+            w = getEventWindow(event)
             action = m.exec_(event.screenPos())
             if action is None:
                 return
             elif action == togact:
                 self.node.setEnabled(not self.node.enabled)
+            elif action == openact:
+                w.openTab(self.node)
             elif action == rename:
                 changed, newname = pcot.ui.namedialog.do(self.node.displayName)
                 if changed:
                     self.node.rename(newname)
                     ui.mainwindow.MainUI.rebuildAll()
-            elif action == help:
-                w = getEventWindow(event)
+            elif action == helpact:
                 w.openHelp(self.node.type, node=self.node)
-
 
 
 class GConnectRect(QtWidgets.QGraphicsRectItem):
@@ -299,7 +356,7 @@ class GArrow(QtWidgets.QGraphicsLineItem):
     # the arrowhead shape
     head: Optional[QtWidgets.QGraphicsPolygonItem]
 
-    def __init__(self, x1, y1, x2, y2, n1, output, n2, inp):
+    def __init__(self, x1, y1, x2, y2, n1, output, n2, inp, compat=True):
         """Constructor - keep track of the nodes and connection indices"""
         self.n1 = n1
         self.output = output
@@ -307,6 +364,8 @@ class GArrow(QtWidgets.QGraphicsLineItem):
         self.input = inp
         super().__init__(x1, y1, x2, y2)
         self.head = None
+        self.col = Qt.black if compat else Qt.red
+        self.setPen(self.col)
         self.makeHead()
 
     def __str__(self):
@@ -333,9 +392,10 @@ class GArrow(QtWidgets.QGraphicsLineItem):
         x2 = line.p2().x()
         y2 = line.p2().y()
         poly << QPointF(x2, y2) << QPointF(x2 + xa * ARROWHEADLENGTH, y2 + ya * ARROWHEADLENGTH) << \
-            QPointF(x2 + xb * ARROWHEADLENGTH, y2 + yb * ARROWHEADLENGTH)
+        QPointF(x2 + xb * ARROWHEADLENGTH, y2 + yb * ARROWHEADLENGTH)
         self.head = QtWidgets.QGraphicsPolygonItem(poly, parent=self)
-        self.head.setBrush(Qt.black)
+        self.head.setBrush(self.col)
+        self.head.setPen(self.col)
 
     def setLine(self, line):
         """whenever we change the line, rebuild the head"""
@@ -379,7 +439,7 @@ def makeConnectors(n, x, y):
         xx = x
         for i in range(0, nouts):
             # connection rectangles are parented to the main rectangle
-            yy = y + n.h - YPADDING - CONNECTORHEIGHT
+            yy = y + n.h - CONNECTORHEIGHT
             r = GConnectRect(n.rect, xx, yy, size, CONNECTORHEIGHT, n, False, i)
             text = GText(n.rect, r.name, n)
             text.setPos(xx + CONNECTORTEXTXOFF, yy + OUTCONNECTORTEXTYOFF)
@@ -393,24 +453,18 @@ def makeNodeGraphics(n):
     """create the necessary items to create a node
     (assuming place has been called). Just the node, not the connections."""
     x, y = n.xy
-    # if the node doesn't have width and height yet, set them. This happens
-    # when a node is not created in place().
-    # Also, if a node width is negative, set the size to the text.
-
-    if n.h is None:
-        n.h = NODEHEIGHT + YPADDING
 
     # draw basic rect, leaving room for connectors at top and bottom
     # We keep this rectangle in the node so we can change its colour
-    n.rect = GMainRect(x, y + CONNECTORHEIGHT, n.type.minwidth,
-                       n.h - YPADDING - CONNECTORHEIGHT * 2, n)
+    n.rect = GMainRect(x, y + CONNECTORHEIGHT, n.w,
+                       n.h - CONNECTORHEIGHT * 2, n)
 
     # draw text label, using the display name. Need to keep a handle on the text
     # so we can change the colour in setColourToState(). This is drawn using a method
     # in the type, which we can override if we want to do Odd Things (editable text)
     n.rect.text = n.type.buildText(n)
-    n.rect.text.setFont(mainFont)
-    n.rect.setSizeToText(n)
+    n.rect.setSizeToText()  # make sure the box fits the text (for non-resizables)
+    n.type.resizeDone(n)  # make sure the text fits the box (for resizables)
     makeConnectors(n, x, y)
 
     # if there's an error, add the code. Otherwise if there a rect text, add that.
@@ -419,20 +473,18 @@ def makeNodeGraphics(n):
         error.setFont(errorFont)
         error.setBrush(QColor(255, 0, 0))
         error.setPos(x + XTEXTOFFSET + XERROROFFSET, y + YTEXTOFFSET + CONNECTORHEIGHT + YERROROFFSET)
-    elif n.rectText is not None and len(n.rectText)>0:
+    elif n.rectText is not None and len(n.rectText) > 0:
         t = GText(n.rect, n.rectText, n)
         t.setFont(errorFont)
         t.setBrush(QColor(0, 0, 255))
         t.setPos(x + XTEXTOFFSET, y + YTEXTOFFSET + CONNECTORHEIGHT + YERROROFFSET)
-    else:
+    elif n.type.showPerformedCount:
         t = GText(n.rect, f"{n.timesPerformed}", n)
         t.setFont(errorFont)
         t.setBrush(QColor(0, 128, 0))
         t.setPos(x + XTEXTOFFSET, y + YTEXTOFFSET + CONNECTORHEIGHT + YERROROFFSET)
 
-
     return n.rect
-
 
 
 class XFormGraphScene(QtWidgets.QGraphicsScene):
@@ -448,7 +500,6 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
     # dragging arrow or none if no arrow being dragged
     draggingArrow: Optional[GArrow]
 
-
     def __init__(self, graph, doPlace):
         """initialise to a graph, and do autolayout if doPlace is true"""
         super().__init__()
@@ -456,14 +507,10 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
         self.selectionChanged.connect(self.selChanged)
         self.selection = []
         self.checkSelChange = True
-        # place everything, adding xy,w,h to all nodes
+        # place everything, adding xy,w,h to all nodes. Not done when loading from a file, because
+        # each node should have w,h at that point.
         if doPlace:
             self.place()
-        else:
-            # or alternatively just set w,h (for loading data from a file)
-            for n in self.graph.nodes:
-                n.w = n.type.minwidth  # will get changed
-                n.h = NODEHEIGHT + YPADDING
 
         # and make all the graphics
         self.rebuild()
@@ -473,11 +520,13 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
         if len(self.graph.nodes) == 0:  # no nodes to place
             return
 
+        GRANDALFPADDING = CONNECTORHEIGHT * 2 + 20
+
         g = Graph()  # grandalf graph, not one of ours!
         # add the vertices
         for n in self.graph.nodes:
             n.vert = Vertex(n)
-            n.vert.view = VertexViewer(w=n.type.minwidth, h=NODEHEIGHT + YPADDING)
+            n.vert.view = VertexViewer(w=n.w, h=n.h + GRANDALFPADDING)
             g.add_vertex(n.vert)
         # now the edges
         for n in self.graph.nodes:
@@ -491,10 +540,19 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
         # build the layout separately for each unconnected
         # subgraph:
 
+        xoff, yoff = 0, 0  # offset for each subgraph
         for gr in g.C:
             sug = SugiyamaLayout(gr)
             sug.init_all()
             sug.draw(3)  # 3 iterations of algorithm
+
+            for v in gr.V():  # add offset to this subgraph
+                x, y = v.view.xy
+                x += xoff
+                y += yoff
+                v.view.xy = x, y
+            xoff += 100  # increment offset
+            yoff += 100
 
         # invert y coordinates of nodes so we have the source at the top,
         # and copy into geometry into the node (if we don't use grandalf)
@@ -502,7 +560,7 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
         for n in self.graph.nodes:
             x, y = n.vert.view.xy
             n.w = n.vert.view.w
-            n.h = n.vert.view.h
+            n.h = n.vert.view.h - GRANDALFPADDING
             n.xy = (x, cy - y)
 
     def place(self):
@@ -514,8 +572,6 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
             x = 0
             y = 0
             for n in self.graph.nodes:
-                n.w = n.type.minwidth      # will get changed
-                n.h = NODEHEIGHT + YPADDING
                 n.xy = (x, y)
                 y += n.h + 20
 
@@ -545,7 +601,7 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
             xs = [n.xy[0] for n in self.graph.nodes]
             ys = [n.xy[1] for n in self.graph.nodes]
             x = sum(xs) / len(xs)
-            y = max(ys) + NODEHEIGHT
+            y = max(ys) + max([n.h for n in self.graph.nodes])
             return x, y
         else:
             return 0, 0
@@ -563,6 +619,10 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
                 if inp is not None:
                     n1, output = inp  # n1 is the source node
 
+                    # get types
+                    _, intype, _ = n2.type.inputConnectors[inputIdx]
+                    _, outtype, _ = n1.type.outputConnectors[output]
+
                     x1, y1 = n1.xy  # this is the "from" and should be on the output ctor
                     x2, y2 = n2.xy  # this is the "to" and should be on the input ctor
                     # draw lines
@@ -570,8 +630,9 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
                     insize = n2.w / len(n2.inputs)
                     x1 = x1 + outsize * (output + 0.5)
                     x2 = x2 + insize * (inputIdx + 0.5)
-                    y1 += n1.h - YPADDING
-                    arrowItem = GArrow(x1, y1, x2, y2, n1, output, n2, inputIdx)
+                    y1 += n1.h
+                    arrowItem = GArrow(x1, y1, x2, y2, n1, output, n2,
+                                       inputIdx, compat=isCompatibleConnection(outtype, intype))
                     self.addItem(arrowItem)
                     self.arrows.append(arrowItem)
 
@@ -581,9 +642,7 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
         there are two selections - the selected items in the view (selected by clicking
         and rubberband) and the currently shown tab."""
         for n in self.graph.nodes:
-            r = 255
-            g = 255
-            b = 255
+            r, g, b = n.type.getDefaultRectColour(n)
             if n in self.selection:
                 r -= 50
                 g -= 50
@@ -595,10 +654,15 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
                 g -= 50
                 b -= 50
             if n.rect is not None:  # might not have a brush yet (rebuild might need calling)
+                r = max(r, 10)
+                g = max(g, 10)
+                b = max(b, 10)
                 n.rect.setBrush(QColor(r, g, b))
                 outlinecol = QColor(0, 0, 0) if n.enabled else QColor(255, 0, 0)
                 n.rect.setPen(outlinecol)
-                n.rect.text.setColour(outlinecol)
+
+                r, g, b = n.type.getTextColour(n) if n.enabled else QColor(255, 0, 0)
+                n.rect.text.setColour(QColor(r, g, b))
         self.update()
 
     def selChanged(self):
@@ -681,7 +745,7 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
                 outtype = n1.getOutputType(output)
                 intype = n2.getInputType(inputIdx)
 
-                if intype is not None and outtype is not None and isCompatibleConnection(outtype, intype):
+                if intype is not None and outtype is not None:
                     if n2.cycle(n1):
                         ui.error("cannot create a cycle")
                     else:
@@ -701,7 +765,7 @@ class XFormGraphScene(QtWidgets.QGraphicsScene):
                         n2.connect(inputIdx, n1, output)
                         self.graph.inputChanged(n2)
                 else:
-                    ui.error("incompatible connection types OUT {} -> IN {}".format(outtype, intype))
+                    ui.error("bad connection type OUT {} -> IN {}".format(outtype, intype))
             self.rebuildArrows()
             self.draggingArrow = None
         super().mouseReleaseEvent(event)

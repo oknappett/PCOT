@@ -21,7 +21,7 @@ import pyperclip
 import pcot.macros
 import pcot.ui as ui
 from pcot import datum
-from pcot.datum import Datum
+from pcot.datum import Datum, Type
 from pcot.sources import nullSourceSet, SourceSet
 from pcot.ui import graphscene
 from pcot.ui.canvas import Canvas
@@ -126,48 +126,33 @@ class BadVersionException(Exception):
 
 class XFormType:
     """Superclass for a transformation type, defining how any XForm which links to it behaves."""
-    ## @var name
     # name of the type
     name: str
-    ## @var group
     # the palette group to which it belongs
     group: str
-    ## @var ver
     # version number
     ver: str
-    ## @var hasEnable
     # does it have an enable button?
     hasEnable: bool
-    ## @var instances
     # all instances of this type in all graphs
     instances: List['XForm']
-
-    ## @var helpwin
     # an open help window, or None
     helpwin: Optional['PyQt5.QtWidgets.QMainWindow']
-
-    ## @var inputConnectors
-    # input connectors, a list of triples (name,connection type name, description)
-    ## @var outputConnectors
-    # output connectors, a list of triples (name,connection type name, description)
-
-    # name is the name which appears in the graph view,
-    # connection type name is 'any', 'imgrgb' etc.: the internal type name,
-    # desc is used in the help window,
-
-    inputConnectors: List[Tuple[str, str, str]]  # the inputs (name,connection type name,description)
-    outputConnectors: List[Tuple[str, str, str]]  # the outputs (name,connection type name,description)
-
-    ## @var autoserialise
+    inputConnectors: List[Tuple[str, Type, str]]  # the inputs (name,connection type,description)
+    outputConnectors: List[Tuple[str, Type, str]]  # the outputs (name,connection type,description)
     # tuple of autoserialisable attributes in each node of this type
     autoserialise: Tuple[str, ...]
-
-    ## @var _md5
     # MD5 hash of source code (generated automatically)
     _md5: str
-
-    ## @var minwidth
     # minimum width of node on screen
+    minwidth: int
+    # can we resize this node by dragging a corner?
+    resizable: bool
+    # should nodes of this type show their performed count? It's pointless for comments, for example,
+    # and messes up their resizing.
+    showPerformedCount: bool
+    # callable to set parameters for QGraphicsRectItem; may be null
+    setRectParams: Optional[Callable[['QGraphicsRectItem'], None]]
 
     def __init__(self, name, group, ver):
         """constructor, takes name, groupname and version"""
@@ -178,8 +163,7 @@ class XFormType:
         self.helpwin = None
         # does this node have an "enabled" button? Change in subclass if reqd.
         self.hasEnable = False
-        # this contains tuples of (name,typename). Images have typenames which
-        # start with "img"
+        # this contains tuples of (name, connector type (a datum Type), desc).
         self.inputConnectors = []
         # this has the same format, but here the output type
         # is the default type for that connection - when an xform is wired up
@@ -194,6 +178,11 @@ class XFormType:
         # before, the serialise() and deserialise() methods.
         self.autoserialise = ()  # tuple or list of attribute names
         self.minwidth = 100
+        self.defaultWidth = self.minwidth
+        self.defaultHeight = graphscene.NODEHEIGHT
+        self.resizable = False
+        self.showPerformedCount = True
+        self.setRectParams = None
 
     def remove(self, node):
         """call to remove node from instance list"""
@@ -219,13 +208,13 @@ class XFormType:
             except KeyError:
                 pass
 
-    def addInputConnector(self, name, typename, desc=""):
+    def addInputConnector(self, name, conntype, desc=""):
         """create a new input connector; done in subclass constructor"""
-        self.inputConnectors.append((name, typename, desc))
+        self.inputConnectors.append((name, conntype, desc))
 
-    def addOutputConnector(self, name, typename, desc=""):
+    def addOutputConnector(self, name, conntype, desc=""):
         """create a new output connector; done in subclass constructor"""
-        self.outputConnectors.append((name, typename, desc))
+        self.outputConnectors.append((name, conntype, desc))
 
     def rename(self, node, name):
         """rename a node (the displayname, not the unique name).
@@ -324,7 +313,19 @@ class XFormType:
         x, y = n.xy
         text = graphscene.GText(n.rect, n.displayName, n)
         text.setPos(x + graphscene.XTEXTOFFSET, y + graphscene.YTEXTOFFSET + graphscene.CONNECTORHEIGHT)
+        text.setFont(graphscene.mainFont)
+
         return text
+
+    def resizeDone(self, n):
+        """The node's onscreen box has been resized"""
+        pass
+
+    def getDefaultRectColour(self, n):
+        return 255, 255, 255
+
+    def getTextColour(self, n):
+        return 0, 0, 0
 
 
 def serialiseConn(c, connSet):
@@ -419,38 +420,27 @@ class XForm:
 
     # display data
 
-    ## @var xy
     # the screen coordinates
     xy: Tuple[int, int]
-    ## var w
     # screen width
     w: Optional[int]
-    ## var h
     # screen height
     h: Optional[int]
 
-    ## @var tabs
     # a list of open tabs
     tabs: List['pcot.ui.tabs.Tab']
-    ## @var current
     # is this the currently selected node?
     current: bool
-    ## @var rect
     # the main rectangle for the node in the scene
     rect: ['graphscene.GMainRect']
-    ## @var inrects
     # input connector rectangles
     inrects: List[Optional['graphscene.GConnectRect']]
-    ## @var outrects
     # output connector rectangles
     outrects: List[Optional['graphscene.GConnectRect']]
-    ## @var error
     # error state or None. See XFormException for codes.
     error: Optional[XFormException]
-    ## @var rectText
     # extra text displayed (if there's no error)
     rectText: Optional[str]
-    ## @var runTime
     # the time this node took to run in the last call to performNodes
     runTime: float
 
@@ -482,12 +472,14 @@ class XForm:
         self.timesPerformed = 0  # used for debugging/optimising
 
         # UI-DEPENDENT DATA DOWN HERE
-        self.xy = (0, 0)  # this SHOULD be serialised
+
+        # this SHOULD be serialised
+        self.xy = (0, 0)
+        self.w = self.type.defaultWidth
+        self.h = self.type.defaultHeight
 
         # this stuff shouldn't be serialized
         # on-screen geometry, which should be set before we try to draw it
-        self.w = None  # unset, will be set on draw
-        self.h = None
         self.tabs = []  # no tabs open
         self.current = False
         self.rect = None  # the main GMainRect rectangle
@@ -575,6 +567,8 @@ class XForm:
         be None if you want to serialize the whole set)
         """
         d = {'xy': self.xy,
+             'w': self.w,
+             'h': self.h,
              'type': self.type.name,
              'displayName': self.displayName,
              'ins': [serialiseConn(c, selection) for c in self.inputs],
@@ -601,6 +595,8 @@ class XForm:
         """deserialise a node from a python dict.
         Some entries have already been already dealt with."""
         self.xy = d['xy']
+        self.w = d.get('w', self.type.defaultWidth)  # use 'get' to still be able to load early data
+        self.h = d.get('h', self.type.defaultHeight)
         self.comment = d['comment']
         # these are the overriding types - if the value is None, use the xformtype's value, else use the one here.
         self.outputTypes = [None if x is None else datum.deserialise(x) for x in d['outputTypes']]
@@ -869,9 +865,14 @@ class XForm:
                 else:
                     # all is well, return the Datum.
                     return o
-            elif o is None or o.tp != tp:
-                # we have passed in a type, but it either doesn't match
-                # or we have a null input. "Dereference" that into a None.
+            elif o is None:
+                # we have a null input
+                return None
+            elif o.tp != tp:
+                # we have passed in a type, but it doesn't match. Rather than raise an exception,
+                # we create an exception and set the XForm's error state to it, and return None. Effectively
+                # we create an exception and deal with it locally.
+                self.setError(XFormException('TYPE', f"expected a {tp}, got {o.tp}"))
                 return None
             else:
                 # we have passed in a type and it matches, so dereference
@@ -1025,13 +1026,22 @@ class XFormGraph:
     def remove(self, node, closetabs=True):
         """remove a node from the graph, and close any tab/window (but not always; when doing Undo
         we monkey patch the existing tabs to point at the replacement nodes)"""
+
         if node in self.nodes:
-            node.disconnectAll()
+            oldChildren = list(node.children)  # shallow copy of children
+            node.disconnectAll()               # because it gets cleared here
             if closetabs:
                 for x in node.tabs:
                     x.nodeDeleted()
             self.nodes.remove(node)
             del self.nodeDict[node.name]
+
+            # having deleted the node try to call all the children. That might seem a bit
+            # weird, but should clear any errors resulting from (say) a bad type being
+            # issued by the deleted node.
+
+            for x in oldChildren:
+                self.performNodes(x)
             node.onRemove()
 
     ## debugging dump of entire graph
@@ -1149,25 +1159,11 @@ class XFormGraph:
         if self.scene is not None:
             self.scene.rebuild()
 
-    ## a node's input has changed, which may change the output types. If it does,
-    # we need to check the output connections to see if they are still compatible.
+    ## a node's input has changed, which may change the output types.
     def inputChanged(self, node):
         # rebuild the types, perhaps replacing None (use the type default) with
         # a type name
         node.type.generateOutputTypes(node)
-        # now check the children for nodes which connect to this one
-        toDisconnect = []
-        for child in node.children:
-            for i in range(0, len(child.inputs)):
-                if child.inputs[i] is not None:
-                    parent, out = child.inputs[i]
-                    if parent is node:
-                        outtype = node.getOutputType(out)
-                        intype = child.getInputType(i)
-                        if not datum.isCompatibleConnection(outtype, intype):
-                            toDisconnect.append((child, i))
-        for child, i in toDisconnect:
-            child.disconnect(i)
 
     def serialise(self, items=None):
         """serialise all nodes into a dict"""
