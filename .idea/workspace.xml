@@ -4,8 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Clusters circles around mean of circle rather than first come first serve type cluster">
+    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Each detection method is now a subclass of main detect class. Abstract classes added">
+      <change afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctBlobDetect.ui" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctHoughTransform.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pcot/assets/tabpctCalibration.ui" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctCalibration.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -35,12 +38,15 @@
     <option name="stateVersion" value="1" />
   </component>
   <component name="ProjectId" id="25T7GDx6bdlhvVS176BWPW4lWqe" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
@@ -100,7 +106,14 @@
       <option name="project" value="LOCAL" />
       <updated>1646836426991</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Each detection method is now a subclass of main detect class. Abstract classes added">
+      <created>1648562580595</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1648562580596</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -115,9 +128,11 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="Added canny edge detector function in pct detection xform" />
     <MESSAGE value="UI changes Kernel size, added Hough circle detector" />
     <MESSAGE value="add circles to RGB image of pct calibration" />
-    <option name="LAST_COMMIT_MESSAGE" value="add circles to RGB image of pct calibration" />
+    <MESSAGE value="Each detection method is now a subclass of main detect class. Abstract classes added" />
+    <option name="LAST_COMMIT_MESSAGE" value="Each detection method is now a subclass of main detect class. Abstract classes added" />
   </component>
 </project>
