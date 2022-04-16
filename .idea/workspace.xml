@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Each detection method is now a subclass of main detect class. Abstract classes added">
-      <change afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctBlobDetect.ui" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctHoughTransform.ui" afterDir="false" />
+    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Blob detection added, with fully functional ui for changing parameters">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pcot/assets/tabpctCalibration.ui" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctCalibration.ui" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pcot/assets/tabpctBlobDetect.ui" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctBlobDetect.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -51,7 +49,7 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/src/pcot/__main__.py" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="RunManager">
     <configuration name="__main__" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
@@ -113,7 +111,14 @@
       <option name="project" value="LOCAL" />
       <updated>1648562580596</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Blob detection added, with fully functional ui for changing parameters">
+      <created>1649164820836</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1649164820837</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -133,6 +138,7 @@
     <MESSAGE value="UI changes Kernel size, added Hough circle detector" />
     <MESSAGE value="add circles to RGB image of pct calibration" />
     <MESSAGE value="Each detection method is now a subclass of main detect class. Abstract classes added" />
-    <option name="LAST_COMMIT_MESSAGE" value="Each detection method is now a subclass of main detect class. Abstract classes added" />
+    <MESSAGE value="Blob detection added, with fully functional ui for changing parameters" />
+    <option name="LAST_COMMIT_MESSAGE" value="Blob detection added, with fully functional ui for changing parameters" />
   </component>
 </project>

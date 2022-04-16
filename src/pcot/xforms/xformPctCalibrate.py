@@ -269,9 +269,11 @@ class BlobDetector(XformPctCalibrate):
                 keypoints = detector.detect(t)
                 blobs = cv.drawKeypoints(c, keypoints, np.array([]), (255, 0, 0),
                                          cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+                '''
                 plt.imshow(t)
                 plt.imshow(blobs)
                 plt.show()
+                '''
                 for k in keypoints:
                     x = k.pt[0]
                     y = k.pt[1]
