@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Blob detection added, with fully functional ui for changing parameters">
+    <list default="true" id="8f5601ab-37af-47c0-80db-05288f71d3dd" name="Changes" comment="Blob detection now works with clustering aswell.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pcot/assets/tabpctBlobDetect.ui" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/assets/tabpctBlobDetect.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/pcot/xforms/xformPctCalibrate.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -49,7 +48,7 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/src/pcot/__main__.py" />
-    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RunManager">
     <configuration name="__main__" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
@@ -118,7 +117,14 @@
       <option name="project" value="LOCAL" />
       <updated>1649164820837</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Blob detection now works with clustering aswell.">
+      <created>1650148982322</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1650148982322</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -139,6 +145,7 @@
     <MESSAGE value="add circles to RGB image of pct calibration" />
     <MESSAGE value="Each detection method is now a subclass of main detect class. Abstract classes added" />
     <MESSAGE value="Blob detection added, with fully functional ui for changing parameters" />
-    <option name="LAST_COMMIT_MESSAGE" value="Blob detection added, with fully functional ui for changing parameters" />
+    <MESSAGE value="Blob detection now works with clustering aswell." />
+    <option name="LAST_COMMIT_MESSAGE" value="Blob detection now works with clustering aswell." />
   </component>
 </project>

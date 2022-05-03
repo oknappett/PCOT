@@ -44,23 +44,26 @@ class XformPctCalibrate(XFormType):
         if Circles is None:
             return None
         else:
+            # sort circles in reverse size/radius order
+            Circles = sorted(Circles, key=lambda x: x[2], reverse=True)
             copy = Circles.copy()
+
             clustered = []
             # loop through all circles
             for c in copy:
                 x, y, r = c[0], c[1], c[2]
                 SameCircles = []
-                for j in copy:
+                for j in reversed(copy):
                     # loop through all circles and compare to current circle
                     if j is not c:
                         Jx, Jy, Jr = j[0], j[1], j[2]
                         # if current circle centre is inside other circle then remove circle from list and add to
                         # similar circle list
-                        if ((Jx <= (x + r)) and (Jx >= (x - r)) or (Jx == x)) and (
-                                (Jy <= (y + r)) and (Jy >= (y - r)) or (Jy == y)):
+                        if ((x <= (Jx + Jr)) and (x >= (Jx - Jr)) or (Jx == x)) and (
+                                (y <= (Jy + Jr)) and (y >= (Jy - Jr)) or (Jy == y)):
+                            SameCircles.append(j)
                             copy.remove(j)
-                            SameCircles.append([Jx, Jy, Jr])
-
+                # copy.remove(c)
                 x = []
                 y = []
                 r = []
@@ -75,9 +78,8 @@ class XformPctCalibrate(XFormType):
                 if (xMean and yMean and rMean) != 0:
                     clustered.append([xMean, yMean, rMean])
 
-                # copy.remove(c)
-
-            print("cluster: ", clustered)
+            print("Targets detected: ", len(clustered))
+            print("Detected target location: ", clustered)
             return clustered
 
     @staticmethod
@@ -130,7 +132,6 @@ class XformPctCalibrate(XFormType):
         else:
             img = data.copy()
             if node.Detect:
-                print("pressed")
                 circles = self.detect(img, node)
                 clustered = self.cluster(circles)
                 out = self.drawCircles(img, clustered)
@@ -163,7 +164,6 @@ class HoughCircles(XformPctCalibrate):
         if img is None:
             return None
         else:
-            circleAmount = []
             circleArray = []
 
             k = node.Kernel
@@ -181,16 +181,12 @@ class HoughCircles(XformPctCalibrate):
                                           maxRadius=0)
 
                 if circles is not None:
-                    circleNo = 0
                     circles = np.uint16(np.around(circles))
                     # draw circles on rgb image
                     for j in circles[0, :]:
-                        circleNo += 1
                         x, y, r = j[0], j[1], j[2]
                         circleArray.append([x, y, r])
 
-                    circleAmount.append(circleNo)
-            print(circleAmount, np.mean(circleAmount))
             return circleArray
 
 
@@ -226,7 +222,6 @@ class BlobDetector(XformPctCalibrate):
         if img is None:
             return None
         else:
-            print("detect by area: ", node.areaFilter)
             copy = img.copy()
 
             params = cv.SimpleBlobDetector_Params()
@@ -234,26 +229,21 @@ class BlobDetector(XformPctCalibrate):
             # thresholds
             params.minThreshold = node.minThresh
             params.maxThreshold = node.maxThresh
-            print("Max thresh: ", node.minThresh, "\n Min thresh: ", node.maxThresh)
             # filter by area
             params.filterByArea = node.areaFilter
             params.minArea = node.minArea
-            print("\nFilter by area: ", node.areaFilter, "\n Min area: ", node.minArea)
 
             # Filter by Circularity 
             params.filterByCircularity = node.circularityFilter
             params.minCircularity = node.minCircularity
-            print("\nFilter by circularity: ", node.circularityFilter, "\n Min circularity: ", node.minCircularity)
 
             # Filter by Convexity 
             params.filterByConvexity = node.convexityFilter
             params.minConvexity = node.minConvexity
-            print("\nFilter by convexity: ", node.convexityFilter, "\n Min convexity: ", node.minConvexity)
 
             # Filter by Inertia
             params.filterByInertia = node.inertiaFilter
             params.minInertiaRatio = node.minInertia
-            print("\nFilter by inertia: ", node.inertiaFilter, "\n Min inertia: ", node.minInertia)
 
             # set up detector
             detector = cv.SimpleBlobDetector_create(params)
@@ -267,19 +257,12 @@ class BlobDetector(XformPctCalibrate):
                 c = cv.GaussianBlur(c, (5, 5), 0)
                 ret, t = cv.threshold(c, 50, 255, cv.THRESH_BINARY_INV)
                 keypoints = detector.detect(t)
-                blobs = cv.drawKeypoints(c, keypoints, np.array([]), (255, 0, 0),
-                                         cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-                '''
-                plt.imshow(t)
-                plt.imshow(blobs)
-                plt.show()
-                '''
+
                 for k in keypoints:
                     x = k.pt[0]
                     y = k.pt[1]
                     # radius is diameter/2
                     r = k.size / 2
-                    print(r)
                     if r > 10:
                         xyr = [np.uint16(np.around(x)), np.uint16(np.around(y)), np.uint16(np.around(r))]
                         coords.append(xyr)
