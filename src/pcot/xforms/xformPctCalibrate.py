@@ -41,29 +41,28 @@ class XformPctCalibrate(XFormType):
 
     @staticmethod
     def cluster(Circles):
+        """Cluster given array of circles so all circles that are 'similar'
+        are used to create a mean of these circles"""
         if Circles is None:
             return None
         else:
-            # sort circles in reverse size/radius order
-            Circles = sorted(Circles, key=lambda x: x[2], reverse=True)
             copy = Circles.copy()
-
+            compare = Circles.copy()
             clustered = []
             # loop through all circles
             for c in copy:
                 x, y, r = c[0], c[1], c[2]
                 SameCircles = []
-                for j in reversed(copy):
-                    # loop through all circles and compare to current circle
-                    if j is not c:
-                        Jx, Jy, Jr = j[0], j[1], j[2]
-                        # if current circle centre is inside other circle then remove circle from list and add to
-                        # similar circle list
-                        if ((x <= (Jx + Jr)) and (x >= (Jx - Jr)) or (Jx == x)) and (
-                                (y <= (Jy + Jr)) and (y >= (Jy - Jr)) or (Jy == y)):
-                            SameCircles.append(j)
-                            copy.remove(j)
-                # copy.remove(c)
+                for j in reversed(compare):
+                    # loop through all circles in reverse order and compare to current circle
+                    # as to avoid duplicate circles
+                    Jx, Jy, Jr = j[0], j[1], j[2]
+                    # if current circle centre is inside other circle then remove circle from list and add to
+                    # similar circle list
+                    if ((x < (Jx + Jr)) and (x > (Jx - Jr))) and (
+                            (y < (Jy + Jr)) and (y > (Jy - Jr))):
+                        SameCircles.append(j)
+                        compare.remove(j)
                 x = []
                 y = []
                 r = []
@@ -72,19 +71,22 @@ class XformPctCalibrate(XFormType):
                     x.append(Nx)
                     y.append(Ny)
                     r.append(Nr)
+                # circle data has to be uint16 for openCV to draw the circles in drawCircles()
                 xMean = np.uint16(np.around(np.mean(x)))
                 yMean = np.uint16(np.around(np.mean(y)))
                 rMean = np.uint16(np.around(np.mean(r)))
-                if (xMean and yMean and rMean) != 0:
+                if(xMean or yMean or rMean) != 0:
                     clustered.append([xMean, yMean, rMean])
 
+            # sort the detected circles in size of circle from big to small
+            clustered = sorted(clustered, key=lambda x: x[2], reverse=True)
             print("Targets detected: ", len(clustered))
             print("Detected target location: ", clustered)
             return clustered
 
     @staticmethod
     def edge(img, kernel):
-        """Canny edge detector on image"""
+        """Canny edge detection"""
         # edge detector on the image -> need to do before circle detection
         k = kernel
         if img is None:
@@ -111,6 +113,7 @@ class XformPctCalibrate(XFormType):
 
     @staticmethod
     def drawCircles(img, Circles):
+        """Draw the circles given on the rgb image"""
         if Circles is None:
             return None
         else:
@@ -118,8 +121,8 @@ class XformPctCalibrate(XFormType):
             rgb = copy.rgbImage()
             for n in Circles:
                 x, y, r = n[0], n[1], n[2]
-                cv.circle(rgb.img, (x, y), r, (1, 0, 0), 1)
-                cv.circle(rgb.img, (x, y), 1, (0, 1, 0), 1)
+                cv.circle(rgb.img, (x, y), r, (1, 0, 0), 2)
+                cv.circle(rgb.img, (x, y), 1, (0, 1, 0), 2)
             return rgb
 
     def detect(self):
@@ -132,8 +135,11 @@ class XformPctCalibrate(XFormType):
         else:
             img = data.copy()
             if node.Detect:
+                # detect circles
                 circles = self.detect(img, node)
+                # cluster them
                 clustered = self.cluster(circles)
+                # output is rgb image with circles drawn on
                 out = self.drawCircles(img, clustered)
             else:
                 out = img
@@ -149,6 +155,7 @@ class HoughCircles(XformPctCalibrate):
         super().__init__("Hough Circles", "calibration", "0.0.0")
 
     def init(self, node):
+        # parameters to be varied
         node.Kernel = 11
         node.Detect = False
         node.out = None
@@ -161,6 +168,9 @@ class HoughCircles(XformPctCalibrate):
         return PCTHoughTab(n, w)
 
     def detect(self, img, node):
+        """Detect circles in an image using the circular Hough
+        transform, the gaussian blur kernel size can be varied
+        in the tab UI"""
         if img is None:
             return None
         else:
@@ -192,7 +202,7 @@ class HoughCircles(XformPctCalibrate):
 
 @xformtype
 class BlobDetector(XformPctCalibrate):
-
+    """Blob detection method to detect PCT target circles"""
     def __init__(self):
         super().__init__("Blob detector", "calibration", "0.0.0")
 
@@ -204,6 +214,7 @@ class BlobDetector(XformPctCalibrate):
         return PCTBlobDetector(n, w)
 
     def init(self, node):
+        # parameters to be varied
         node.Detect = False
         node.minThresh = 0
         node.maxThresh = 255
@@ -219,6 +230,9 @@ class BlobDetector(XformPctCalibrate):
         node.out = None
 
     def detect(self, img, node):
+        """Detects circles in an image using a blob detector. The parameters
+        for the blob detector are changed in the UI and the filters can be
+        toggled on or off"""
         if img is None:
             return None
         else:
@@ -229,15 +243,15 @@ class BlobDetector(XformPctCalibrate):
             # thresholds
             params.minThreshold = node.minThresh
             params.maxThreshold = node.maxThresh
-            # filter by area
+            # filter by area, toggle on or off
             params.filterByArea = node.areaFilter
             params.minArea = node.minArea
 
-            # Filter by Circularity 
+            # Filter by Circularity, toggle on or off
             params.filterByCircularity = node.circularityFilter
             params.minCircularity = node.minCircularity
 
-            # Filter by Convexity 
+            # Filter by Convexity, toggle on or off
             params.filterByConvexity = node.convexityFilter
             params.minConvexity = node.minConvexity
 
@@ -245,16 +259,16 @@ class BlobDetector(XformPctCalibrate):
             params.filterByInertia = node.inertiaFilter
             params.minInertiaRatio = node.minInertia
 
-            # set up detector
+            # set up detector, toggle on or off
             detector = cv.SimpleBlobDetector_create(params)
 
-            # copy = self.thresh(copy)
-
-            coords = []
+            circleArray = []
             for i in range(copy.channels):
                 c = copy.img[:, :, i]
                 c = (c * 255).astype(np.uint8)
+                # smooth image
                 c = cv.GaussianBlur(c, (5, 5), 0)
+                # inverse threshold image
                 ret, t = cv.threshold(c, 50, 255, cv.THRESH_BINARY_INV)
                 keypoints = detector.detect(t)
 
@@ -263,14 +277,16 @@ class BlobDetector(XformPctCalibrate):
                     y = k.pt[1]
                     # radius is diameter/2
                     r = k.size / 2
+                    # filter out blobs smaller than 10 pixels -> never
                     if r > 10:
                         xyr = [np.uint16(np.around(x)), np.uint16(np.around(y)), np.uint16(np.around(r))]
-                        coords.append(xyr)
+                        circleArray.append(xyr)
 
-            return coords
+            return circleArray
 
 
 class PCTBlobDetector(pcot.ui.tabs.Tab):
+    """Class for blob detector tab UI"""
     def __init__(self, node, w):
         super().__init__(w, node, "tabpctBlobDetect.ui")
         self.w.BlobDetect.clicked.connect(self.detect)
@@ -349,6 +365,7 @@ class PCTBlobDetector(pcot.ui.tabs.Tab):
 
 
 class PCTHoughTab(pcot.ui.tabs.Tab):
+    """Class for Hough transform tab UI"""
     def __init__(self, node, w):
         super().__init__(w, node, "tabpctHoughTransform.ui")
         # self.w.NAME.SIGNAL.connect(self.FUNCTION WHICH CHANGES VALUE)
