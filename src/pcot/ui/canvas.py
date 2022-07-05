@@ -2,6 +2,7 @@
 import logging
 import math
 import os
+import platform
 from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt5 import QtWidgets, QtCore
@@ -28,15 +29,14 @@ def img2qimage(img):
     """convert a cv/numpy image to a Qt image
     input must be 3 channels, 0-1 floats
     """
-    i = img * 255.0
-    i = i.astype(np.ubyte)
+    i = (img * 256).clip(max=255).astype(np.ubyte)
     height, width, channel = i.shape
     bytesPerLine = 3 * width
     return QImage(i.data, width, height,
                   bytesPerLine, QImage.Format_RGB888)
 
 
-## the actual drawing widget, contained within the Canvas widget
+# the actual drawing widget, contained within the Canvas widget
 class InnerCanvas(QtWidgets.QWidget):
     ## @var img
     # the numpy image we are rendering (1 or 3 chans)
@@ -79,9 +79,20 @@ class InnerCanvas(QtWidgets.QWidget):
             ptr.drawPoint(16, 16)
 
             ptr.end()
-
-            mask = QBitmap(32, 32)
-            mask.clear()
+            # BM and MASK work like this:
+            # B=0 M=0 gives transparent
+            # B=0 M=1 gives white
+            # B=1 M=1 gives black
+            # B=1 M=0 is XOR under Windows, but undefined elsewhere!
+            if platform.system() == 'Windows':
+                # we want to use XOR under windows
+                mask = QBitmap(32, 32)
+                mask.clear()
+            else:
+                # on other platforms we want white on transparent.
+                mask = bm   # gives white
+                bm = QBitmap(32, 32)
+                bm.clear()
 
             cls.cursor = QCursor(bm, mask, 16, 16)
         return cls.cursor
@@ -568,7 +579,7 @@ class Canvas(QtWidgets.QWidget):
             return
         img = self.previmg.rgb()
         # convert to 8-bit integer from 32-bit float
-        img8 = (img * 255).astype('uint8')
+        img8 = (img*256).clip(max=255).astype(np.ubyte)
         # and change endianness
         img8 = cv.cvtColor(img8, cv.COLOR_RGB2BGR)
         res = QtWidgets.QFileDialog.getSaveFileName(self, 'Save RGB image as PNG',
